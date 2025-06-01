@@ -107,18 +107,21 @@ async function initializeLiffAndProcessUser() {
         const response = await fetch(GAS_API_SAVE_USER_URL, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/plain;charset=utf-8', 
             },
             body: JSON.stringify({ idToken: idToken }) // IDトークンをJSONで送信
         });
 
+        console.log("fetch (ユーザー保存API) レスポンスオブジェクト:", response);
+
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`GAS API (saveUser) Error: ${response.status} ${errorText}`);
+            console.error(`GASユーザー保存APIエラー (response.ok === false): ${response.status} ${response.statusText}`, errorText);
+            throw new Error(`GAS API (saveUser) Error: ${response.status}. Details: ${errorText}`);
         }
         
         const gasResponse = await response.json(); // GASからのJSONレスポンスをパース
-        console.log("GASユーザー保存API 応答:", gasResponse);
+        console.log("GASユーザー保存API 応答 (JSONパース後):", gasResponse);
                 
         if (gasResponse && gasResponse.status === 'Success') {
             statusElement.textContent = `ようこそ、${gasResponse.displayName} さん`;
