@@ -1,12 +1,10 @@
-// script.js (GitHub Pages用 - 最終確認・デバッグ強化版)
+// script.js (GitHub Pages用)
 const vConsole = new VConsole();
 console.log("vConsole is ready.");
 
-// ★★★【最重要】ご自身の環境に合わせて必ず正しい値を設定してください ★★★
 const GAS_API_GET_DATA_URL = 'https://script.google.com/macros/s/AKfycbwAUHVfcQzqMvvgUL7dCQYpT6u30WxB9MI3jBbaiua7UH0RHqgjduY0xrzqyZ_ZXlgM/exec';
 const GAS_API_SAVE_USER_URL = 'https://script.google.com/macros/s/AKfycbwAUHVfcQzqMvvgUL7dCQYpT6u30WxB9MI3jBbaiua7UH0RHqgjduY0xrzqyZ_ZXlgM/exec'; // 通常はGETと同じURL
 const LIFF_ID = '2007511020-EQ98my1W';
-// ★★★ 設定ここまで ★★★
 
 const statusElement = document.getElementById('liff-status');
 
