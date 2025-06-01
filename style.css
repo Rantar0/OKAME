@@ -1,20 +1,49 @@
 /* style.css */
-body { font-family: sans-serif; margin: 1em; padding-bottom: 3em; }
-h1, h2 { margin: 1em 0 0.5em 0; padding: 0; }
-h1 { font-size: 1.5em; }
-h2 { font-size: 1.2em; font-weight: bold; color: #333; border-bottom: 2px solid #4F8A10; padding-bottom: 0.3em; }
-h3 { /* 年間計画の「年間計画」という見出し用にスタイルを調整 */
+body { 
+    font-family: sans-serif; 
+    margin: 1em; 
+    padding-bottom: 4em; /* フッターの高さと少し余裕 */
+}
+h1, h2, h3 { 
+    margin: 1em 0 0.5em 0; 
+    padding: 0; 
+}
+h1 { 
+    font-size: 1.5em; 
+}
+h2 { 
     font-size: 1.2em; 
     font-weight: bold; 
     color: #333; 
     border-bottom: 2px solid #4F8A10; 
     padding-bottom: 0.3em;
-    margin-top: 1em; 
 }
-hr { margin: 2em 0; }
-table { width: 100%; border-collapse: collapse; margin-top: 0.5em; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 0.9em; }
-th { background-color: #f2f2f2; font-weight: bold; }
+/* 「年間計画」という固定テキストの見出しにもh2と同じスタイルを適用する場合 */
+h3 { 
+    font-size: 1.2em; 
+    font-weight: bold; 
+    color: #333; 
+    border-bottom: 2px solid #4F8A10; 
+    padding-bottom: 0.3em;
+}
+hr {
+    margin: 2em 0;
+}
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 0.5em; 
+}
+th, td { 
+    border: 1px solid #ccc; 
+    padding: 8px; 
+    text-align: left; 
+    font-size: 0.9em; 
+}
+th { 
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
 
 /* 年間計画テーブル専用スタイル */
 #schedule-container table thead tr th {
@@ -26,10 +55,26 @@ th { background-color: #f2f2f2; font-weight: bold; }
     background-color: #FFFFE0; 
 }
 
+/* 連絡事項テーブルのヘッダーは共通thスタイルが適用される */
+/* もし連絡事項の左列を太字にしたい場合など、個別のスタイルはここに追加 */
+/*
+#board-container table tbody tr td:first-child {
+    font-weight: bold;
+}
+*/
+
+/* LIFFステータス表示用フッター */
 #liff-footer {
-    position: fixed; bottom: 0; left: 0; width: 100%;
-    background-color: #f0f0f0; padding: 8px; text-align: center;
-    font-size: 0.8em; color: #333; border-top: 1px solid #ccc;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #f0f0f0;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.8em;
+    color: #333;
+    border-top: 1px solid #ccc;
     box-sizing: border-box;
     z-index: 100;
 }
