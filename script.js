@@ -2,8 +2,8 @@
 const vConsole = new VConsole();
 console.log("vConsole is ready.");
 
-const GAS_API_GET_DATA_URL = 'https://script.google.com/macros/s/AKfycbwAUHVfcQzqMvvgUL7dCQYpT6u30WxB9MI3jBbaiua7UH0RHqgjduY0xrzqyZ_ZXlgM/exec';
-const GAS_API_SAVE_USER_URL = 'https://script.google.com/macros/s/AKfycbwAUHVfcQzqMvvgUL7dCQYpT6u30WxB9MI3jBbaiua7UH0RHqgjduY0xrzqyZ_ZXlgM/exec'; // 通常はGETと同じURL
+const GAS_API_GET_DATA_URL = 'https://script.google.com/macros/s/AKfycbynbJpXQ2_F1sPpi2uWAL6XhbM2fN2IEhDJKACvTjYJw9K9N0CT-HANjy7Ve5KYSrDs/exec';
+const GAS_API_SAVE_USER_URL = 'https://script.google.com/macros/s/AKfycbynbJpXQ2_F1sPpi2uWAL6XhbM2fN2IEhDJKACvTjYJw9K9N0CT-HANjy7Ve5KYSrDs/exec'; // 通常はGETと同じURL
 const LIFF_ID = '2007511020-EQ98my1W';
 
 const statusElement = document.getElementById('liff-status');
