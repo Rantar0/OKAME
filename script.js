@@ -3,8 +3,8 @@ const vConsole = new VConsole();
 console.log("vConsole is ready.");
 
 // --- 【重要】ご自身の環境に合わせて必ず正しい値を設定してください ---
-const GAS_API_GET_DATA_URL = "https://script.google.com/macros/s/AKfycbynbJpXQ2_F1sPpi2uWAL6XhbM2fN2IEhDJKACvTjYJw9K9N0CT-HANjy7Ve5KYSrDs/exec";
-const GAS_API_SAVE_USER_URL = "https://script.google.com/macros/s/AKfycbynbJpXQ2_F1sPpi2uWAL6XhbM2fN2IEhDJKACvTjYJw9K9N0CT-HANjy7Ve5KYSrDs/exec"; // 通常GETと同じURL
+const GAS_API_GET_DATA_URL = "https://script.google.com/macros/s/AKfycbxV4BWni-PkoDuT0fpun7oR4UplzuA2rcLHqfPPeNDKz0u4ZN_rWVlXt2jUe3XTPyirOw/exec";
+const GAS_API_SAVE_USER_URL = "https://script.google.com/macros/s/AKfycbxV4BWni-PkoDuT0fpun7oR4UplzuA2rcLHqfPPeNDKz0u4ZN_rWVlXt2jUe3XTPyirOw/exec"; // 通常GETと同じURL
 const LIFF_ID = "2007511020-EQ98my1W";
 // --- 設定ここまで ---
 
