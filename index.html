@@ -288,6 +288,15 @@
     <div id="status" class="status">準備中...</div>
 
     <script>
+        // アプリ設定
+        const CONFIG = {
+            GAS_URL: "https://script.google.com/macros/s/AKfycbzau71O1_ODPmdwrsbTbFgLDg0GaMEL7mJtZ1ncya_M8p_hPxEBxDX9CuI18fLgI3YNqA/exec",
+            LIFF_ID: "", // GASから取得
+            DEBUG_MODE: false, // 本番では false に設定
+            RETRY_DELAY: 2000,
+            MAX_RETRIES: 3
+        };
+
         // vConsole 初期化 （DEBUG_MODEがtrueの場合のみ実行）
         if (CONFIG.DEBUG_MODE) {
             const vConsole = new VConsole({
@@ -296,15 +305,6 @@
                 maxLogNumber: 1000
             });
         }
-        
-        // アプリ設定
-        const CONFIG = {
-            GAS_URL: "https://script.google.com/macros/s/AKfycbzau71O1_ODPmdwrsbTbFgLDg0GaMEL7mJtZ1ncya_M8p_hPxEBxDX9CuI18fLgI3YNqA/exec",
-            LIFF_ID: "2007511020-EQ98my1W",
-            DEBUG_MODE: false, // 本番では false に設定
-            RETRY_DELAY: 2000,
-            MAX_RETRIES: 3
-        };
         
         // DOM要素の取得
         const elements = {
@@ -458,6 +458,13 @@
                 
                 addDebugLog("Raw response received", "info");
                 addDebugLog(`Response keys: ${Object.keys(data).join(", ")}`, "info");
+
+                if (data.liffId) {
+                    CONFIG.LIFF_ID = data.liffId;
+                    addDebugLog(`LIFF ID set from server: ${CONFIG.LIFF_ID}`, "success");
+                } else {
+                    addDebugLog("LIFF ID not received from server.", "warning");
+                }
                 
                 if (data.error) {
                     throw new Error(data.error);
