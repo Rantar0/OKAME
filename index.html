@@ -6,7 +6,7 @@
     <title>年間計画</title>
     
     <!-- vConsole for debugging -->
-    <!-- <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script> -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
     
     <!-- LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -288,12 +288,14 @@
     <div id="status" class="status">準備中...</div>
 
     <script>
-        // vConsole 初期化
-        const vConsole = new VConsole({
-            theme: "dark",
-            defaultPlugins: ["system", "network", "element"],
-            maxLogNumber: 1000
-        });
+        // vConsole 初期化 （DEBUG_MODEがtrueの場合のみ実行）
+        if (CONFIG.DEBUG_MODE) {
+            const vConsole = new VConsole({
+                theme: "dark",
+                defaultPlugins: ["system", "network", "element"],
+                maxLogNumber: 1000
+            });
+        }
         
         // アプリ設定
         const CONFIG = {
