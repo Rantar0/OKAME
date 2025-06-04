@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年間スケジュール - テスト版</title>
+    <title>年間スケジュール - デバッグ版</title>
+    
+    <!-- vConsole for debugging -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     
     <style>
         body {
@@ -25,58 +31,54 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
-        .test-panel {
-            background: #e3f2fd;
-            border: 2px solid #2196f3;
+        .debug-panel {
+            background: #263238;
+            color: #4fc3f7;
             padding: 15px;
             margin-bottom: 20px;
             border-radius: 5px;
-        }
-        
-        .test-button {
-            background: #2196f3;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .test-result {
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 3px;
             font-family: monospace;
             font-size: 12px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
         }
         
-        .success { color: green; }
-        .error { color: red; }
-        .warning { color: orange; }
+        .debug-step {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #4fc3f7;
+            background: rgba(79, 195, 247, 0.1);
+        }
+        
+        .step-success { border-left-color: #4caf50; color: #4caf50; }
+        .step-error { border-left-color: #f44336; color: #f44336; }
+        .step-warning { border-left-color: #ff9800; color: #ff9800; }
+        .step-info { border-left-color: #2196f3; color: #2196f3; }
         
         h1 {
             color: #2c5aa0;
             text-align: center;
-            font-size: 28px;
+            font-size: 24px;
             margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 20px;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 16px;
+            margin: 15px 0;
+            font-size: 14px;
         }
         
         th, td {
-            border: 2px solid #ddd;
-            padding: 12px 8px;
+            border: 1px solid #ddd;
+            padding: 8px;
             text-align: left;
         }
         
@@ -86,6 +88,13 @@
             text-align: center;
         }
         
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        
         .status {
             position: fixed;
             bottom: 0;
@@ -93,24 +102,61 @@
             right: 0;
             background: #2c5aa0;
             color: white;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
+            z-index: 1000;
         }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2c5aa0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- テストパネル -->
-    <div class="test-panel">
-        <h3>🧪 API 接続テスト</h3>
-        <button class="test-button" onclick="testConnection()">接続テスト</button>
-        <button class="test-button" onclick="testGetData()">データ取得テスト</button>
-        <button class="test-button" onclick="clearResults()">結果クリア</button>
-        <div id="test-results"></div>
+    <!-- ローディング画面 -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div style="margin-top: 15px; font-size: 16px; color: #2c5aa0;">
+            初期化中...
+        </div>
     </div>
-
-    <div class="container">
+    
+    <!-- メインコンテンツ -->
+    <div id="main" class="container hidden">
+        <!-- デバッグパネル -->
+        <div class="debug-panel" id="debug-log">
+            <div style="font-weight: bold; margin-bottom: 10px;">🐛 デバッグログ</div>
+            <div id="debug-steps"></div>
+        </div>
+        
         <h1 id="main-title">年間スケジュール</h1>
         <div id="sub-title" class="subtitle">読み込み中...</div>
         
@@ -120,7 +166,7 @@
             </div>
         </div>
         
-        <h2>📢 連絡事項</h2>
+        <h2 style="color: #2c5aa0; font-size: 18px; margin-top: 25px;">📢 連絡事項</h2>
         <div id="board-section">
             <div id="board-content">
                 <div class="empty">連絡事項を読み込んでいます...</div>
@@ -128,137 +174,249 @@
         </div>
     </div>
     
-    <div id="status" class="status">準備中...</div>
+    <div id="status" class="status">初期化中...</div>
 
     <script>
-        // ✅ 実際のGAS URLを設定済み
+        // vConsole 初期化
+        const vConsole = new VConsole({
+            theme: 'dark',
+            defaultPlugins: ['system', 'network', 'element'],
+            maxLogNumber: 1000
+        });
+        
+        // 設定
         const CONFIG = {
             API_URL: 'https://script.google.com/macros/s/AKfycbxV4BWni-PkoDuT0fpun7oR4UplzuA2rcLHqfPPeNDKz0u4ZN_rWVlXt2jUe3XTPyirOw/exec',
             LIFF_ID: '2007511020-EQ98my1W',
-            TIMEOUT: 10000
+            TIMEOUT: 15000 // 15秒（LINE内蔵ブラウザは遅い場合がある）
         };
         
+        // DOM要素
         const elements = {
+            loading: document.getElementById('loading'),
+            main: document.getElementById('main'),
             status: document.getElementById('status'),
+            debugSteps: document.getElementById('debug-steps'),
             mainTitle: document.getElementById('main-title'),
             subTitle: document.getElementById('sub-title'),
             scheduleContent: document.getElementById('schedule-content'),
-            boardContent: document.getElementById('board-content'),
-            testResults: document.getElementById('test-results')
+            boardContent: document.getElementById('board-content')
         };
         
+        let stepCounter = 0;
+        
+        // デバッグステップを追加
+        function addDebugStep(message, type = 'info') {
+            stepCounter++;
+            const time = new Date().toLocaleTimeString();
+            const step = document.createElement('div');
+            step.className = `debug-step step-${type}`;
+            step.innerHTML = `[${stepCounter}] ${time} - ${message}`;
+            elements.debugSteps.appendChild(step);
+            
+            // 自動スクロール
+            elements.debugSteps.scrollTop = elements.debugSteps.scrollHeight;
+            
+            console.log(`[DEBUG ${stepCounter}] ${message}`);
+        }
+        
+        // ステータス更新
         function updateStatus(message) {
             elements.status.textContent = message;
-            console.log('Status:', message);
+            addDebugStep(`Status: ${message}`, 'info');
         }
         
-        function addTestResult(message, type = 'info') {
-            const div = document.createElement('div');
-            div.className = `test-result ${type}`;
-            div.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
-            elements.testResults.appendChild(div);
-            elements.testResults.scrollTop = elements.testResults.scrollHeight;
+        // 画面表示
+        function showMain() {
+            elements.loading.classList.add('hidden');
+            elements.main.classList.remove('hidden');
         }
         
-        function clearResults() {
-            elements.testResults.innerHTML = '';
+        // エラー表示
+        function showError(message) {
+            addDebugStep(`ERROR: ${message}`, 'error');
+            updateStatus(`エラー: ${message}`);
+            showMain();
         }
         
-        // 接続テスト
-        async function testConnection() {
-            addTestResult('🔗 接続テストを開始...', 'info');
+        // API呼び出し（詳細ログ付き）
+        async function apiCall(url, options = {}) {
+            addDebugStep(`API Call: ${url}`, 'info');
+            addDebugStep(`Options: ${JSON.stringify(options)}`, 'info');
             
-            // API_URL の確認を削除（既に正しく設定されているため）
-            addTestResult(`📡 接続先: ${CONFIG.API_URL}`, 'info');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                addDebugStep('API Timeout - aborting request', 'warning');
+                controller.abort();
+            }, CONFIG.TIMEOUT);
             
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=health`, {
-                    method: 'GET',
-                    mode: 'cors'
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
                 });
                 
-                addTestResult(`📡 レスポンス: ${response.status} ${response.statusText}`, 'info');
+                clearTimeout(timeoutId);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    addTestResult(`✅ 接続成功: ${JSON.stringify(data)}`, 'success');
-                } else {
-                    addTestResult(`❌ レスポンスエラー: ${response.status}`, 'error');
+                addDebugStep(`Response Status: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'error');
+                addDebugStep(`Response Headers: ${JSON.stringify([...response.headers])}`, 'info');
+                
+                if (!response.ok) {
                     const errorText = await response.text();
-                    addTestResult(`詳細: ${errorText}`, 'error');
+                    addDebugStep(`Error Response Body: ${errorText}`, 'error');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                const data = await response.json();
+                addDebugStep(`Response Data: ${JSON.stringify(data).substring(0, 200)}...`, 'success');
+                return data;
                 
             } catch (error) {
-                addTestResult(`❌ 接続エラー: ${error.message}`, 'error');
+                clearTimeout(timeoutId);
+                addDebugStep(`API Error: ${error.name} - ${error.message}`, 'error');
                 
-                // 詳細なエラー診断
-                if (error.message.includes('CORS')) {
-                    addTestResult('💡 CORS エラーです。GASのデプロイ設定を確認してください。', 'warning');
-                } else if (error.message.includes('Failed to fetch')) {
-                    addTestResult('💡 ネットワークエラーまたはCORS問題の可能性があります。', 'warning');
-                    addTestResult('💡 GASが正しくデプロイされているか確認してください。', 'warning');
+                if (error.name === 'AbortError') {
+                    throw new Error('タイムアウト: サーバーの応答が遅すぎます');
                 }
+                throw error;
             }
         }
         
-        // データ取得テスト
-        async function testGetData() {
-            addTestResult('📊 データ取得テストを開始...', 'info');
-            
+        // LIFF初期化
+        async function initLiff() {
             try {
-                const response = await fetch(`${CONFIG.API_URL}?action=getPageData`, {
-                    method: 'GET',
-                    mode: 'cors'
+                addDebugStep('LIFF initialization starting...', 'info');
+                addDebugStep(`LIFF ID: ${CONFIG.LIFF_ID}`, 'info');
+                addDebugStep(`User Agent: ${navigator.userAgent}`, 'info');
+                
+                updateStatus('LIFF初期化中...');
+                
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+                addDebugStep('LIFF init() completed successfully', 'success');
+                
+                // LIFF環境情報
+                addDebugStep(`LIFF Version: ${liff.getVersion()}`, 'info');
+                addDebugStep(`Is in client: ${liff.isInClient()}`, 'info');
+                addDebugStep(`Is logged in: ${liff.isLoggedIn()}`, 'info');
+                addDebugStep(`OS: ${liff.getOS()}`, 'info');
+                addDebugStep(`Language: ${liff.getLanguage()}`, 'info');
+                
+                if (!liff.isLoggedIn()) {
+                    addDebugStep('User not logged in - redirecting to login', 'warning');
+                    updateStatus('LINEログインにリダイレクトします...');
+                    setTimeout(() => liff.login(), 2000);
+                    return false;
+                }
+                
+                addDebugStep('User is logged in', 'success');
+                
+                // IDトークン取得
+                const idToken = liff.getIDToken();
+                if (idToken) {
+                    addDebugStep('ID Token acquired successfully', 'success');
+                    addDebugStep(`Token length: ${idToken.length}`, 'info');
+                } else {
+                    addDebugStep('Failed to get ID Token', 'error');
+                }
+                
+                return true;
+                
+            } catch (error) {
+                addDebugStep(`LIFF initialization failed: ${error.message}`, 'error');
+                addDebugStep(`Error stack: ${error.stack}`, 'error');
+                updateStatus('LIFF初期化に失敗しましたが、データ表示を続行します');
+                return false;
+            }
+        }
+        
+        // ページデータ取得
+        async function loadPageData() {
+            try {
+                addDebugStep('Loading page data...', 'info');
+                updateStatus('データ取得中...');
+                
+                const data = await apiCall(`${CONFIG.API_URL}?action=getPageData`);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                addDebugStep('Page data loaded successfully', 'success');
+                
+                // タイトル設定
+                if (data.mainTitle) {
+                    elements.mainTitle.textContent = data.mainTitle;
+                    addDebugStep(`Main title: ${data.mainTitle}`, 'info');
+                }
+                if (data.subTitle) {
+                    elements.subTitle.textContent = data.subTitle;
+                    addDebugStep(`Sub title: ${data.subTitle}`, 'info');
+                }
+                
+                // テーブル作成
+                createTable(data.scheduleData, elements.scheduleContent, '年間計画');
+                createTable(data.boardData, elements.boardContent, '連絡事項');
+                
+                updateStatus('データ読み込み完了');
+                
+            } catch (error) {
+                addDebugStep(`Data loading failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        // ユーザー情報保存
+        async function saveUser() {
+            try {
+                addDebugStep('Saving user info...', 'info');
+                updateStatus('ユーザー情報保存中...');
+                
+                const idToken = liff.getIDToken();
+                if (!idToken) {
+                    throw new Error('IDトークンが取得できません');
+                }
+                
+                const result = await apiCall(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'saveUser',
+                        idToken: idToken 
+                    })
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    addTestResult(`✅ データ取得成功`, 'success');
-                    addTestResult(`📋 メインタイトル: ${data.mainTitle}`, 'info');
-                    addTestResult(`📋 サブタイトル: ${data.subTitle}`, 'info');
-                    addTestResult(`📋 スケジュールデータ: ${data.scheduleData.length} 行`, 'info');
-                    addTestResult(`📋 連絡事項データ: ${data.boardData.length} 行`, 'info');
-                    
-                    // 実際にデータを表示
-                    loadDataFromResponse(data);
-                    
+                if (result.status === 'Success') {
+                    addDebugStep(`User saved: ${result.displayName}`, 'success');
+                    updateStatus(`ようこそ、${result.displayName} さん`);
                 } else {
-                    addTestResult(`❌ データ取得失敗: ${response.status}`, 'error');
+                    addDebugStep(`User save failed: ${result.message}`, 'warning');
+                    updateStatus('ユーザー情報保存に失敗しましたが、アプリは利用できます');
                 }
                 
             } catch (error) {
-                addTestResult(`❌ データ取得エラー: ${error.message}`, 'error');
+                addDebugStep(`User save error: ${error.message}`, 'warning');
+                updateStatus('ユーザー情報保存に失敗しましたが、アプリは利用できます');
             }
-        }
-        
-        // レスポンスデータから画面に表示
-        function loadDataFromResponse(data) {
-            if (data.mainTitle) {
-                elements.mainTitle.textContent = data.mainTitle;
-            }
-            if (data.subTitle) {
-                elements.subTitle.textContent = data.subTitle;
-            }
-            
-            createTable(data.scheduleData, elements.scheduleContent, '年間計画');
-            createTable(data.boardData, elements.boardContent, '連絡事項');
-            
-            updateStatus('データ表示完了');
         }
         
         // テーブル作成
         function createTable(data, container, name) {
-            if (!data || data.length === 0 || 
-                (data.length === 1 && data[0].every(cell => !cell))) {
+            addDebugStep(`Creating table: ${name}`, 'info');
+            
+            if (!data || data.length === 0) {
                 const message = name === '連絡事項' ? 
                     '現在、お知らせはありません' : 
                     '表示する年間計画はありません';
                 container.innerHTML = `<div class="empty">${message}</div>`;
+                addDebugStep(`Empty table: ${name}`, 'warning');
                 return;
             }
             
             let tableHTML = '<table>';
+            let dataRowCount = 0;
             
+            // ヘッダー
             if (data.length > 0) {
                 tableHTML += '<thead><tr>';
                 data[0].forEach(cell => {
@@ -267,14 +425,13 @@
                 tableHTML += '</tr></thead>';
             }
             
+            // データ行
             tableHTML += '<tbody>';
-            let hasDataRows = false;
-            
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
                 if (row.every(cell => !cell)) continue;
                 
-                hasDataRows = true;
+                dataRowCount++;
                 tableHTML += '<tr>';
                 row.forEach(cell => {
                     tableHTML += `<td>${cell || ''}</td>`;
@@ -283,22 +440,73 @@
             }
             tableHTML += '</tbody></table>';
             
-            if (!hasDataRows) {
+            if (dataRowCount === 0) {
                 const message = name === '連絡事項' ? 
                     '現在、お知らせはありません' : 
                     '表示する年間計画はありません';
                 container.innerHTML = `<div class="empty">${message}</div>`;
+                addDebugStep(`No data rows in table: ${name}`, 'warning');
             } else {
                 container.innerHTML = tableHTML;
+                addDebugStep(`Table created: ${name} (${dataRowCount} rows)`, 'success');
             }
         }
         
-        // 初期化
+        // メイン初期化
+        async function initialize() {
+            try {
+                addDebugStep('=== App initialization started ===', 'info');
+                addDebugStep(`Timestamp: ${new Date().toISOString()}`, 'info');
+                addDebugStep(`Screen size: ${window.innerWidth}x${window.innerHeight}`, 'info');
+                
+                // ページデータを先に読み込み
+                await loadPageData();
+                showMain();
+                
+                // LIFF初期化（並行実行）
+                const liffSuccess = await initLiff();
+                if (liffSuccess) {
+                    await saveUser();
+                }
+                
+                addDebugStep('=== App initialization completed ===', 'success');
+                
+            } catch (error) {
+                addDebugStep(`Initialization failed: ${error.message}`, 'error');
+                showError(error.message);
+            }
+        }
+        
+        // DOMContentLoaded後に開始
         document.addEventListener('DOMContentLoaded', () => {
-            addTestResult('🚀 テスト版アプリが読み込まれました', 'success');
-            addTestResult('💡 「接続テスト」ボタンでAPI接続を確認してください', 'info');
-            updateStatus('テスト準備完了 - ボタンを押してテストしてください');
+            addDebugStep('DOM Content Loaded', 'info');
+            
+            // 少し遅延させてから初期化（LINE内蔵ブラウザ対応）
+            setTimeout(() => {
+                initialize();
+            }, 500);
         });
+        
+        // ウィンドウエラーをキャッチ
+        window.addEventListener('error', (event) => {
+            addDebugStep(`Window Error: ${event.error.message}`, 'error');
+            addDebugStep(`At: ${event.filename}:${event.lineno}:${event.colno}`, 'error');
+        });
+        
+        // 未処理のPromise拒否をキャッチ
+        window.addEventListener('unhandledrejection', (event) => {
+            addDebugStep(`Unhandled Promise Rejection: ${event.reason}`, 'error');
+        });
+        
+        // デバッグ用グローバル変数
+        window.DEBUG_APP = {
+            config: CONFIG,
+            elements: elements,
+            addDebugStep: addDebugStep,
+            apiCall: apiCall
+        };
+        
+        console.log('🐛 Debug app loaded. Use window.DEBUG_APP for debugging.');
     </script>
 </body>
 </html>
