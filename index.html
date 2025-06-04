@@ -3,510 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年間スケジュール - デバッグ版</title>
+    <title>GAS接続テスト</title>
     
-    <!-- vConsole for debugging -->
+    <!-- vConsole -->
     <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
-    
-    <!-- LIFF SDK -->
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     
     <style>
         body {
             font-family: sans-serif;
-            font-size: 18px;
-            line-height: 1.6;
-            margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+            background: #f0f0f0;
         }
         
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        .test-box {
             background: white;
             padding: 20px;
+            margin: 10px 0;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid #2196f3;
         }
         
-        .debug-panel {
+        .success { border-left-color: #4caf50; background: #f1f8e9; }
+        .error { border-left-color: #f44336; background: #ffebee; }
+        .warning { border-left-color: #ff9800; background: #fff3e0; }
+        
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .result {
             background: #263238;
             color: #4fc3f7;
             padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
             font-family: monospace;
             font-size: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
             max-height: 300px;
             overflow-y: auto;
         }
-        
-        .debug-step {
-            margin: 5px 0;
-            padding: 5px;
-            border-left: 3px solid #4fc3f7;
-            background: rgba(79, 195, 247, 0.1);
-        }
-        
-        .step-success { border-left-color: #4caf50; color: #4caf50; }
-        .step-error { border-left-color: #f44336; color: #f44336; }
-        .step-warning { border-left-color: #ff9800; color: #ff9800; }
-        .step-info { border-left-color: #2196f3; color: #2196f3; }
-        
-        h1 {
-            color: #2c5aa0;
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .subtitle {
-            text-align: center;
-            color: #666;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 14px;
-        }
-        
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        
-        th {
-            background-color: #e8f4f8;
-            font-weight: bold;
-            text-align: center;
-        }
-        
-        .empty {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-style: italic;
-        }
-        
-        .status {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #2c5aa0;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 1000;
-        }
-        
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2c5aa0;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- ローディング画面 -->
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <div style="margin-top: 15px; font-size: 16px; color: #2c5aa0;">
-            初期化中...
-        </div>
+    <h1>🔧 GAS 接続テスト</h1>
+    
+    <div class="test-box">
+        <h3>基本接続テスト</h3>
+        <button onclick="testBasicConnection()">GAS接続テスト</button>
+        <button onclick="testWithParams()">パラメータ付きテスト</button>
+        <button onclick="testPost()">POSTテスト</button>
+        <button onclick="clearResults()">結果クリア</button>
     </div>
     
-    <!-- メインコンテンツ -->
-    <div id="main" class="container hidden">
-        <!-- デバッグパネル -->
-        <div class="debug-panel" id="debug-log">
-            <div style="font-weight: bold; margin-bottom: 10px;">🐛 デバッグログ</div>
-            <div id="debug-steps"></div>
-        </div>
-        
-        <h1 id="main-title">年間スケジュール</h1>
-        <div id="sub-title" class="subtitle">読み込み中...</div>
-        
-        <div id="schedule-section">
-            <div id="schedule-content">
-                <div class="empty">年間計画を読み込んでいます...</div>
-            </div>
-        </div>
-        
-        <h2 style="color: #2c5aa0; font-size: 18px; margin-top: 25px;">📢 連絡事項</h2>
-        <div id="board-section">
-            <div id="board-content">
-                <div class="empty">連絡事項を読み込んでいます...</div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="status" class="status">初期化中...</div>
+    <div id="results"></div>
 
     <script>
-        // vConsole 初期化
-        const vConsole = new VConsole({
-            theme: 'dark',
-            defaultPlugins: ['system', 'network', 'element'],
-            maxLogNumber: 1000
-        });
+        // vConsole初期化
+        const vConsole = new VConsole();
         
-        // 設定
-        const CONFIG = {
-            API_URL: 'https://script.google.com/macros/s/AKfycbxV4BWni-PkoDuT0fpun7oR4UplzuA2rcLHqfPPeNDKz0u4ZN_rWVlXt2jUe3XTPyirOw/exec',
-            LIFF_ID: '2007511020-EQ98my1W',
-            TIMEOUT: 15000 // 15秒（LINE内蔵ブラウザは遅い場合がある）
-        };
+        // 🚨 ここに実際のGAS URLを設定
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxV4BWni-PkoDuT0fpun7oR4UplzuA2rcLHqfPPeNDKz0u4ZN_rWVlXt2jUe3XTPyirOw/exec';
         
-        // DOM要素
-        const elements = {
-            loading: document.getElementById('loading'),
-            main: document.getElementById('main'),
-            status: document.getElementById('status'),
-            debugSteps: document.getElementById('debug-steps'),
-            mainTitle: document.getElementById('main-title'),
-            subTitle: document.getElementById('sub-title'),
-            scheduleContent: document.getElementById('schedule-content'),
-            boardContent: document.getElementById('board-content')
-        };
+        const resultsDiv = document.getElementById('results');
         
-        let stepCounter = 0;
-        
-        // デバッグステップを追加
-        function addDebugStep(message, type = 'info') {
-            stepCounter++;
-            const time = new Date().toLocaleTimeString();
-            const step = document.createElement('div');
-            step.className = `debug-step step-${type}`;
-            step.innerHTML = `[${stepCounter}] ${time} - ${message}`;
-            elements.debugSteps.appendChild(step);
-            
-            // 自動スクロール
-            elements.debugSteps.scrollTop = elements.debugSteps.scrollHeight;
-            
-            console.log(`[DEBUG ${stepCounter}] ${message}`);
+        function addResult(title, content, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-box ${type}`;
+            div.innerHTML = `
+                <h4>${title}</h4>
+                <div class="result">${JSON.stringify(content, null, 2)}</div>
+                <small>時刻: ${new Date().toLocaleTimeString()}</small>
+            `;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
         }
         
-        // ステータス更新
-        function updateStatus(message) {
-            elements.status.textContent = message;
-            addDebugStep(`Status: ${message}`, 'info');
+        function clearResults() {
+            resultsDiv.innerHTML = '';
         }
         
-        // 画面表示
-        function showMain() {
-            elements.loading.classList.add('hidden');
-            elements.main.classList.remove('hidden');
-        }
-        
-        // エラー表示
-        function showError(message) {
-            addDebugStep(`ERROR: ${message}`, 'error');
-            updateStatus(`エラー: ${message}`);
-            showMain();
-        }
-        
-        // API呼び出し（詳細ログ付き）
-        async function apiCall(url, options = {}) {
-            addDebugStep(`API Call: ${url}`, 'info');
-            addDebugStep(`Options: ${JSON.stringify(options)}`, 'info');
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => {
-                addDebugStep('API Timeout - aborting request', 'warning');
-                controller.abort();
-            }, CONFIG.TIMEOUT);
+        // 基本接続テスト
+        async function testBasicConnection() {
+            console.log('🔗 Basic connection test starting');
             
             try {
-                const response = await fetch(url, {
-                    ...options,
-                    signal: controller.signal
+                console.log('Fetching:', GAS_URL);
+                
+                const response = await fetch(GAS_URL, {
+                    method: 'GET',
+                    mode: 'cors'
                 });
                 
-                clearTimeout(timeoutId);
+                console.log('Response received:', response);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers]);
                 
-                addDebugStep(`Response Status: ${response.status} ${response.statusText}`, 
-                    response.ok ? 'success' : 'error');
-                addDebugStep(`Response Headers: ${JSON.stringify([...response.headers])}`, 'info');
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    addDebugStep(`Error Response Body: ${errorText}`, 'error');
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                addDebugStep(`Response Data: ${JSON.stringify(data).substring(0, 200)}...`, 'success');
-                return data;
-                
-            } catch (error) {
-                clearTimeout(timeoutId);
-                addDebugStep(`API Error: ${error.name} - ${error.message}`, 'error');
-                
-                if (error.name === 'AbortError') {
-                    throw new Error('タイムアウト: サーバーの応答が遅すぎます');
-                }
-                throw error;
-            }
-        }
-        
-        // LIFF初期化
-        async function initLiff() {
-            try {
-                addDebugStep('LIFF initialization starting...', 'info');
-                addDebugStep(`LIFF ID: ${CONFIG.LIFF_ID}`, 'info');
-                addDebugStep(`User Agent: ${navigator.userAgent}`, 'info');
-                
-                updateStatus('LIFF初期化中...');
-                
-                await liff.init({ liffId: CONFIG.LIFF_ID });
-                addDebugStep('LIFF init() completed successfully', 'success');
-                
-                // LIFF環境情報
-                addDebugStep(`LIFF Version: ${liff.getVersion()}`, 'info');
-                addDebugStep(`Is in client: ${liff.isInClient()}`, 'info');
-                addDebugStep(`Is logged in: ${liff.isLoggedIn()}`, 'info');
-                addDebugStep(`OS: ${liff.getOS()}`, 'info');
-                addDebugStep(`Language: ${liff.getLanguage()}`, 'info');
-                
-                if (!liff.isLoggedIn()) {
-                    addDebugStep('User not logged in - redirecting to login', 'warning');
-                    updateStatus('LINEログインにリダイレクトします...');
-                    setTimeout(() => liff.login(), 2000);
-                    return false;
-                }
-                
-                addDebugStep('User is logged in', 'success');
-                
-                // IDトークン取得
-                const idToken = liff.getIDToken();
-                if (idToken) {
-                    addDebugStep('ID Token acquired successfully', 'success');
-                    addDebugStep(`Token length: ${idToken.length}`, 'info');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Response data:', data);
+                    addResult('✅ 基本接続成功', data, 'success');
                 } else {
-                    addDebugStep('Failed to get ID Token', 'error');
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    addResult('❌ レスポンスエラー', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        body: errorText
+                    }, 'error');
                 }
                 
-                return true;
-                
             } catch (error) {
-                addDebugStep(`LIFF initialization failed: ${error.message}`, 'error');
-                addDebugStep(`Error stack: ${error.stack}`, 'error');
-                updateStatus('LIFF初期化に失敗しましたが、データ表示を続行します');
-                return false;
+                console.error('Fetch error:', error);
+                addResult('❌ 接続エラー', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                }, 'error');
+                
+                // 詳細診断
+                if (error.message.includes('fetch')) {
+                    addResult('💡 診断', 'fetch APIエラー - CORS設定またはGASデプロイ設定を確認', 'warning');
+                }
             }
         }
         
-        // ページデータ取得
-        async function loadPageData() {
+        // パラメータ付きテスト
+        async function testWithParams() {
+            console.log('🔗 Parameter test starting');
+            
             try {
-                addDebugStep('Loading page data...', 'info');
-                updateStatus('データ取得中...');
+                const url = `${GAS_URL}?action=test&timestamp=${Date.now()}`;
+                console.log('Fetching with params:', url);
                 
-                const data = await apiCall(`${CONFIG.API_URL}?action=getPageData`);
+                const response = await fetch(url);
                 
-                if (data.error) {
-                    throw new Error(data.error);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ パラメータテスト成功', data, 'success');
+                } else {
+                    const errorText = await response.text();
+                    addResult('❌ パラメータテストエラー', {
+                        status: response.status,
+                        body: errorText
+                    }, 'error');
                 }
-                
-                addDebugStep('Page data loaded successfully', 'success');
-                
-                // タイトル設定
-                if (data.mainTitle) {
-                    elements.mainTitle.textContent = data.mainTitle;
-                    addDebugStep(`Main title: ${data.mainTitle}`, 'info');
-                }
-                if (data.subTitle) {
-                    elements.subTitle.textContent = data.subTitle;
-                    addDebugStep(`Sub title: ${data.subTitle}`, 'info');
-                }
-                
-                // テーブル作成
-                createTable(data.scheduleData, elements.scheduleContent, '年間計画');
-                createTable(data.boardData, elements.boardContent, '連絡事項');
-                
-                updateStatus('データ読み込み完了');
                 
             } catch (error) {
-                addDebugStep(`Data loading failed: ${error.message}`, 'error');
-                throw error;
+                console.error('Parameter test error:', error);
+                addResult('❌ パラメータテストエラー', {
+                    message: error.message
+                }, 'error');
             }
         }
         
-        // ユーザー情報保存
-        async function saveUser() {
+        // POSTテスト
+        async function testPost() {
+            console.log('🔗 POST test starting');
+            
             try {
-                addDebugStep('Saving user info...', 'info');
-                updateStatus('ユーザー情報保存中...');
-                
-                const idToken = liff.getIDToken();
-                if (!idToken) {
-                    throw new Error('IDトークンが取得できません');
-                }
-                
-                const result = await apiCall(CONFIG.API_URL, {
+                const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'saveUser',
-                        idToken: idToken 
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        test: 'data',
+                        timestamp: new Date().toISOString()
                     })
                 });
                 
-                if (result.status === 'Success') {
-                    addDebugStep(`User saved: ${result.displayName}`, 'success');
-                    updateStatus(`ようこそ、${result.displayName} さん`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ POSTテスト成功', data, 'success');
                 } else {
-                    addDebugStep(`User save failed: ${result.message}`, 'warning');
-                    updateStatus('ユーザー情報保存に失敗しましたが、アプリは利用できます');
+                    const errorText = await response.text();
+                    addResult('❌ POSTテストエラー', {
+                        status: response.status,
+                        body: errorText
+                    }, 'error');
                 }
                 
             } catch (error) {
-                addDebugStep(`User save error: ${error.message}`, 'warning');
-                updateStatus('ユーザー情報保存に失敗しましたが、アプリは利用できます');
+                console.error('POST test error:', error);
+                addResult('❌ POSTテストエラー', {
+                    message: error.message
+                }, 'error');
             }
         }
         
-        // テーブル作成
-        function createTable(data, container, name) {
-            addDebugStep(`Creating table: ${name}`, 'info');
-            
-            if (!data || data.length === 0) {
-                const message = name === '連絡事項' ? 
-                    '現在、お知らせはありません' : 
-                    '表示する年間計画はありません';
-                container.innerHTML = `<div class="empty">${message}</div>`;
-                addDebugStep(`Empty table: ${name}`, 'warning');
-                return;
-            }
-            
-            let tableHTML = '<table>';
-            let dataRowCount = 0;
-            
-            // ヘッダー
-            if (data.length > 0) {
-                tableHTML += '<thead><tr>';
-                data[0].forEach(cell => {
-                    tableHTML += `<th>${cell || ''}</th>`;
-                });
-                tableHTML += '</tr></thead>';
-            }
-            
-            // データ行
-            tableHTML += '<tbody>';
-            for (let i = 1; i < data.length; i++) {
-                const row = data[i];
-                if (row.every(cell => !cell)) continue;
-                
-                dataRowCount++;
-                tableHTML += '<tr>';
-                row.forEach(cell => {
-                    tableHTML += `<td>${cell || ''}</td>`;
-                });
-                tableHTML += '</tr>';
-            }
-            tableHTML += '</tbody></table>';
-            
-            if (dataRowCount === 0) {
-                const message = name === '連絡事項' ? 
-                    '現在、お知らせはありません' : 
-                    '表示する年間計画はありません';
-                container.innerHTML = `<div class="empty">${message}</div>`;
-                addDebugStep(`No data rows in table: ${name}`, 'warning');
-            } else {
-                container.innerHTML = tableHTML;
-                addDebugStep(`Table created: ${name} (${dataRowCount} rows)`, 'success');
-            }
-        }
-        
-        // メイン初期化
-        async function initialize() {
-            try {
-                addDebugStep('=== App initialization started ===', 'info');
-                addDebugStep(`Timestamp: ${new Date().toISOString()}`, 'info');
-                addDebugStep(`Screen size: ${window.innerWidth}x${window.innerHeight}`, 'info');
-                
-                // ページデータを先に読み込み
-                await loadPageData();
-                showMain();
-                
-                // LIFF初期化（並行実行）
-                const liffSuccess = await initLiff();
-                if (liffSuccess) {
-                    await saveUser();
-                }
-                
-                addDebugStep('=== App initialization completed ===', 'success');
-                
-            } catch (error) {
-                addDebugStep(`Initialization failed: ${error.message}`, 'error');
-                showError(error.message);
-            }
-        }
-        
-        // DOMContentLoaded後に開始
+        // 初期化
         document.addEventListener('DOMContentLoaded', () => {
-            addDebugStep('DOM Content Loaded', 'info');
+            console.log('🚀 Test app loaded');
+            console.log('GAS URL:', GAS_URL);
+            console.log('User Agent:', navigator.userAgent);
             
-            // 少し遅延させてから初期化（LINE内蔵ブラウザ対応）
-            setTimeout(() => {
-                initialize();
-            }, 500);
+            addResult('🚀 テストアプリ起動', {
+                gasUrl: GAS_URL,
+                userAgent: navigator.userAgent,
+                timestamp: new Date().toISOString()
+            }, 'info');
         });
-        
-        // ウィンドウエラーをキャッチ
-        window.addEventListener('error', (event) => {
-            addDebugStep(`Window Error: ${event.error.message}`, 'error');
-            addDebugStep(`At: ${event.filename}:${event.lineno}:${event.colno}`, 'error');
-        });
-        
-        // 未処理のPromise拒否をキャッチ
-        window.addEventListener('unhandledrejection', (event) => {
-            addDebugStep(`Unhandled Promise Rejection: ${event.reason}`, 'error');
-        });
-        
-        // デバッグ用グローバル変数
-        window.DEBUG_APP = {
-            config: CONFIG,
-            elements: elements,
-            addDebugStep: addDebugStep,
-            apiCall: apiCall
-        };
-        
-        console.log('🐛 Debug app loaded. Use window.DEBUG_APP for debugging.');
     </script>
 </body>
 </html>
