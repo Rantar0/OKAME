@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年間スケジュール - ありあけ健康友の会</title>
+    <title>年間計画</title>
     
     <!-- vConsole for debugging -->
     <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
@@ -266,17 +266,17 @@
             <div style="font-weight: bold; margin-bottom: 8px;">🔧 通信状況</div>
             <div id="debug-log"></div>
         </div>
-        
-        <!-- 年間計画 -->
-        <h2>📅 年間計画</h2>
-        <div id="schedule-content">
-            <div class="empty">年間計画を読み込んでいます...</div>
-        </div>
-        
+
         <!-- 連絡事項 -->
         <h2>📢 連絡事項</h2>
         <div id="board-content">
             <div class="empty">連絡事項を読み込んでいます...</div>
+        </div>
+        
+        <!-- 年間計画 -->
+        <h2 id="schedule-title">📅 年間計画</h2>
+        <div id="schedule-content">
+            <div class="empty">年間計画を読み込んでいます...</div>
         </div>
         
         <!-- フッター余白 -->
@@ -303,7 +303,6 @@
         
         // アプリ設定
         const CONFIG = {
-            // 🚨 正しいGAS ウェブアプリURLに更新してください
             GAS_URL: "https://script.google.com/macros/s/AKfycbzau71O1_ODPmdwrsbTbFgLDg0GaMEL7mJtZ1ncya_M8p_hPxEBxDX9CuI18fLgI3YNqA/exec",
             LIFF_ID: "2007511020-EQ98my1W",
             DEBUG_MODE: false, // 本番では false に設定
@@ -324,6 +323,7 @@
             scheduleContent: document.getElementById("schedule-content"),
             boardContent: document.getElementById("board-content"),
             errorMessage: document.getElementById("error-message")
+            scheduleTitle: document.getElementById("schedule-title")
         };
         
         // アプリ状態
@@ -483,8 +483,9 @@
                     addDebugLog(`Title set: ${data.mainTitle}`, "success");
                 }
                 if (data.subTitle) {
-                    elements.subTitle.textContent = data.subTitle;
-                    addDebugLog(`Subtitle set: ${data.subTitle}`, "success");
+                    elements.scheduleTitle.textContent = '📅 ' + data.subTitle;
+                    addDebugLog(`Schedule Title set: ${data.subTitle}`, "success");
+                    elements.subTitle.classList.add("hidden");
                 }
                 
                 // テーブル生成
