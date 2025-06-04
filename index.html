@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年間スケジュール</title>
+    
+    <!-- vConsole for debugging -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    
+    <!-- LIFF SDK -->
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    
+    <style>
+        /* 高齢者向けシンプルデザイン */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c5aa0;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #2c5aa0;
+            font-size: 22px;
+            margin-top: 30px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #2c5aa0;
+        }
+        
+        /* テーブルスタイル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        
+        th, td {
+            border: 2px solid #ddd;
+            padding: 12px 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #e8f4f8;
+            font-weight: bold;
+            text-align: center;
+            color: #2c5aa0;
+        }
+        
+        tbody tr:first-child td:first-child,
+        th:first-child {
+            background-color: #ffe8b3;
+            font-weight: bold;
+        }
+        
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* 空メッセージ */
+        .empty {
+            text-align: center;
+            padding: 30px 20px;
+            color: #666;
+            font-style: italic;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px dashed #ddd;
+        }
+        
+        .empty::before {
+            content: "📋";
+            display: block;
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        /* ステータスバー */
+        .status {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #2c5aa0 0%, #1976d2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* ローディング画面 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: white;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* エラー画面 */
+        .error-screen {
+            background: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .error-screen h2 {
+            color: #d32f2f;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .retry-button {
+            background: #2c5aa0;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        .retry-button:hover {
+            background: #1976d2;
+        }
+        
+        /* デバッグパネル（開発時のみ表示） */
+        .debug-panel {
+            background: #263238;
+            color: #4fc3f7;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #37474f;
+        }
+        
+        .debug-step {
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+        
+        .debug-step.success { color: #4caf50; }
+        .debug-step.error { color: #f44336; }
+        .debug-step.warning { color: #ff9800; }
+        .debug-step.info { color: #2196f3; }
+        
+        /* ユーティリティクラス */
+        .hidden { display: none !important; }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                font-size: 16px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+            
+            table {
+                font-size: 14px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+            
+            .status {
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ローディング画面 -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">アプリを読み込み中...</div>
+        <div style="font-size: 14px; margin-top: 10px; opacity: 0.8;">
+            しばらくお待ちください
+        </div>
+    </div>
+    
+    <!-- メインコンテンツ -->
+    <div id="main" class="container hidden">
+        <h1 id="main-title">年間スケジュール</h1>
+        <div id="sub-title" class="subtitle">読み込み中...</div>
+        
+        <!-- デバッグパネル（開発時のみ） -->
+        <div id="debug-panel" class="debug-panel">
+            <div style="font-weight: bold; margin-bottom: 8px;">🔧 通信状況</div>
+            <div id="debug-log"></div>
+        </div>
+        
+        <!-- スケジュール表 -->
+        <div id="schedule-section">
+            <h2>📅 年間計画</h2>
+            <div id="schedule-content">
+                <div class="empty">年間計画を読み込んでいます...</div>
+            </div>
+        </div>
+        
+        <!-- 連絡事項 -->
+        <h2>📢 連絡事項</h2>
+        <div id="board-section">
+            <div id="board-content">
+                <div class="empty">連絡事項を読み込んでいます...</div>
+            </div>
+        </div>
+        
+        <!-- フッター余白 -->
+        <div style="height: 80px;"></div>
+    </div>
+    
+    <!-- エラー画面 -->
+    <div id="error" class="error-screen hidden">
+        <h2>⚠️ 読み込みエラー</h2>
+        <p id="error-message">データの読み込みに失敗しました。</p>
+        <button class="retry-button" onclick="retryLoad()">再試行</button>
+    </div>
+    
+    <!-- ステータスバー -->
+    <div id="status" class="status">準備中...</div>
+
+    <script>
+        // vConsole 初期化
+        const vConsole = new VConsole({
+            theme: 'dark',
+            defaultPlugins: ['system', 'network', 'element'],
+            maxLogNumber: 1000
+        });
+        
+        // アプリ設定
+        const CONFIG = {
+            // 🚨 新しいGAS URLに更新
+            GAS_URL: 'https://script.google.com/macros/s/AKfycbwrlQRBZH4GIfZnd66r0lY9UulBwiRDvagK5A_TnoG7f3CL-YkKM4NMYCbS_OCXwuMfYQ/exec',
+            LIFF_ID: '2007511020-EQ98my1W',
+            DEBUG_MODE: true, // 本番では false に設定
+            RETRY_DELAY: 2000,
+            MAX_RETRIES: 3
+        };
+        
+        // DOM要素の取得
+        const elements = {
+            loading: document.getElementById('loading'),
+            main: document.getElementById('main'),
+            error: document.getElementById('error'),
+            status: document.getElementById('status'),
+            debugPanel: document.getElementById('debug-panel'),
+            debugLog: document.getElementById('debug-log'),
+            mainTitle: document.getElementById('main-title'),
+            subTitle: document.getElementById('sub-title'),
+            scheduleContent: document.getElementById('schedule-content'),
+            boardContent: document.getElementById('board-content'),
+            errorMessage: document.getElementById('error-message')
+        };
+        
+        // アプリ状態
+        let debugCounter = 0;
+        let isLiffReady = false;
+        let currentUser = null;
+        
+        // デバッグログ出力
+        function addDebugLog(message, type = 'info') {
+            if (!CONFIG.DEBUG_MODE) return;
+            
+            debugCounter++;
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `debug-step ${type}`;
+            logEntry.textContent = `[${debugCounter}] ${time} - ${message}`;
+            
+            elements.debugLog.appendChild(logEntry);
+            elements.debugLog.scrollTop = elements.debugLog.scrollHeight;
+            
+            console.log(`[DEBUG ${debugCounter}] ${message}`);
+        }
+        
+        // ステータス更新
+        function updateStatus(message, icon = '') {
+            elements.status.textContent = `${icon} ${message}`.trim();
+            addDebugLog(`Status: ${message}`);
+        }
+        
+        // 画面切り替え
+        function showScreen(screenName) {
+            elements.loading.classList.add('hidden');
+            elements.main.classList.add('hidden');
+            elements.error.classList.add('hidden');
+            
+            if (screenName === 'main') {
+                elements.main.classList.remove('hidden');
+                if (!CONFIG.DEBUG_MODE) {
+                    elements.debugPanel.style.display = 'none';
+                }
+            } else if (screenName === 'error') {
+                elements.error.classList.remove('hidden');
+            } else if (screenName === 'loading') {
+                elements.loading.classList.remove('hidden');
+            }
+        }
+        
+        // エラー表示
+        function showError(message, details = '') {
+            addDebugLog(`ERROR: ${message}`, 'error');
+            if (details) addDebugLog(`Details: ${details}`, 'error');
+            
+            elements.errorMessage.textContent = message;
+            showScreen('error');
+            updateStatus('エラーが発生しました', '❌');
+        }
+        
+        // JSONP通信関数（LINEアプリ対応版）
+        function jsonpRequest(url, params = {}) {
+            return new Promise((resolve, reject) => {
+                // ユニークなコールバック名を生成
+                const callbackName = `liff_callback_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+                
+                addDebugLog(`Creating JSONP callback: ${callbackName}`, 'info');
+                
+                // グローバルコールバック関数を定義
+                window[callbackName] = function(data) {
+                    addDebugLog('JSONP callback executed successfully', 'success');
+                    // クリーンアップ
+                    delete window[callbackName];
+                    if (script && script.parentNode) {
+                        document.head.removeChild(script);
+                    }
+                    resolve(data);
+                };
+                
+                // パラメータにコールバック名を追加
+                const queryParams = { ...params, callback: callbackName };
+                const queryString = Object.keys(queryParams)
+                    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+                    .join('&');
+                
+                const requestUrl = `${url}?${queryString}`;
+                addDebugLog(`JSONP Request URL: ${requestUrl.substring(0, 120)}...`);
+                
+                // scriptタグを作成
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.async = true;
+                script.src = requestUrl;
+                
+                // エラーハンドリング
+                script.onerror = function(error) {
+                    addDebugLog('JSONP script load error', 'error');
+                    delete window[callbackName];
+                    if (script && script.parentNode) {
+                        document.head.removeChild(script);
+                    }
+                    reject(new Error('JSONP script load failed'));
+                };
+                
+                script.onload = function() {
+                    addDebugLog('JSONP script loaded successfully', 'info');
+                };
+                
+                // タイムアウト設定
+                const timeout = setTimeout(() => {
+                    if (window[callbackName]) {
+                        addDebugLog('JSONP request timeout', 'error');
+                        delete window[callbackName];
+                        if (script && script.parentNode) {
+                            document.head.removeChild(script);
+                        }
+                        reject(new Error('JSONP request timeout (20s)'));
+                    }
+                }, 20000); // 20秒のタイムアウト
+                
+                // タイムアウトをクリアする
+                const originalCallback = window[callbackName];
+                window[callbackName] = function(data) {
+                    clearTimeout(timeout);
+                    originalCallback(data);
+                };
+                
+                // リクエスト実行
+                addDebugLog('Adding JSONP script to head', 'info');
+                document.head.appendChild(script);
+            });
+        }
+        
+        // ページデータ取得
+        async function loadPageData() {
+            try {
+                addDebugLog('Loading page data...', 'info');
+                updateStatus('データを取得中...', '📊');
+                
+                const data = await jsonpRequest(CONFIG.GAS_URL, { action: 'getPageData' });
+                
+                addDebugLog('Raw response received', 'info');
+                addDebugLog(`Response keys: ${Object.keys(data).join(', ')}`, 'info');
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                addDebugLog('Page data loaded successfully', 'success');
+                addDebugLog(`Communication method: ${data.meta?.method || 'unknown'}`);
+                addDebugLog(`GAS version: ${data.meta?.gasVersion || 'unknown'}`);
+                
+                // デバッグ情報をログ出力
+                if (data.debug) {
+                    addDebugLog(`Sheet info - Last row: ${data.debug.sheetLastRow}, Last col: ${data.debug.sheetLastColumn}`, 'info');
+                    addDebugLog(`Data lengths - Schedule: ${data.debug.scheduleDataLength}, Board: ${data.debug.boardDataLength}`, 'info');
+                }
+                
+                // タイトル設定
+                if (data.mainTitle) {
+                    elements.mainTitle.textContent = data.mainTitle;
+                    addDebugLog(`Title set: ${data.mainTitle}`, 'success');
+                }
+                if (data.subTitle) {
+                    elements.subTitle.textContent = data.subTitle;
+                    addDebugLog(`Subtitle set: ${data.subTitle}`, 'success');
+                }
+                
+                // テーブル生成
+                addDebugLog('Creating schedule table...', 'info');
+                createTable(data.scheduleData, elements.scheduleContent, '年間計画');
+                
+                addDebugLog('Creating board table...', 'info');
+                createTable(data.boardData, elements.boardContent, '連絡事項');
+                
+                updateStatus('データ表示完了', '✅');
+                return true;
+                
+            } catch (error) {
+                addDebugLog(`Data loading failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        // テーブル作成（改良版）
+        function createTable(data, container, tableName) {
+            addDebugLog(`Creating table: ${tableName}`, 'info');
+            addDebugLog(`Input data type: ${typeof data}, length: ${Array.isArray(data) ? data.length : 'N/A'}`, 'info');
+            
+            // データ検証
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                addDebugLog(`No valid data for ${tableName}`, 'warning');
+                const message = tableName === '連絡事項' ? 
+                    '現在、お知らせはありません' : 
+                    '表示する年間計画はありません';
+                container.innerHTML = `<div class="empty">${message}</div>`;
+                return;
+            }
+            
+            // 完全に空のデータかチェック
+            const hasValidData = data.some(row => 
+                Array.isArray(row) && row.some(cell => 
+                    cell !== null && cell !== undefined && String(cell).trim() !== ''
+                )
+            );
+            
+            if (!hasValidData) {
+                addDebugLog(`All data empty for ${tableName}`, 'warning');
+                const message = tableName === '連絡事項' ? 
+                    '現在、お知らせはありません' : 
+                    '表示する年間計画はありません';
+                container.innerHTML = `<div class="empty">${message}</div>`;
+                return;
+            }
+            
+            // データの最初の数行をログ出力
+            addDebugLog(`First few rows of ${tableName}:`, 'info');
+            data.slice(0, Math.min(3, data.length)).forEach((row, index) => {
+                addDebugLog(`  Row ${index}: [${Array.isArray(row) ? row.join(', ') : row}]`, 'info');
+            });
+            
+            // テーブル作成
+            let tableHTML = '<table>';
+            let dataRowCount = 0;
+            let hasHeader = false;
+            
+            // ヘッダー行の処理
+            if (data.length > 0 && Array.isArray(data[0])) {
+                const firstRow = data[0];
+                const hasHeaderContent = firstRow.some(cell => 
+                    cell !== null && cell !== undefined && String(cell).trim() !== ''
+                );
+                
+                if (hasHeaderContent) {
+                    tableHTML += '<thead><tr>';
+                    firstRow.forEach(cell => {
+                        const cellValue = cell === null || cell === undefined ? '' : String(cell);
+                        tableHTML += `<th>${escapeHtml(cellValue)}</th>`;
+                    });
+                    tableHTML += '</tr></thead>';
+                    hasHeader = true;
+                    addDebugLog(`Header created for ${tableName}`, 'success');
+                }
+            }
+            
+            // データ行の処理
+            tableHTML += '<tbody>';
+            const startIndex = hasHeader ? 1 : 0;
+            
+            for (let i = startIndex; i < data.length; i++) {
+                const row = data[i];
+                
+                if (!Array.isArray(row)) {
+                    addDebugLog(`Skipping non-array row ${i}: ${row}`, 'warning');
+                    continue;
+                }
+                
+                // 空行チェック
+                const hasContent = row.some(cell => 
+                    cell !== null && cell !== undefined && String(cell).trim() !== ''
+                );
+                
+                if (!hasContent) {
+                    addDebugLog(`Skipping empty row ${i}`, 'info');
+                    continue;
+                }
+                
+                dataRowCount++;
+                tableHTML += '<tr>';
+                row.forEach(cell => {
+                    const cellValue = cell === null || cell === undefined ? '' : String(cell);
+                    tableHTML += `<td>${escapeHtml(cellValue)}</td>`;
+                });
+                tableHTML += '</tr>';
+            }
+            tableHTML += '</tbody></table>';
+            
+            if (dataRowCount === 0) {
+                addDebugLog(`No data rows found in ${tableName}`, 'warning');
+                const message = tableName === '連絡事項' ? 
+                    '現在、お知らせはありません' : 
+                    '表示する年間計画はありません';
+                container.innerHTML = `<div class="empty">${message}</div>`;
+            } else {
+                container.innerHTML = tableHTML;
+                addDebugLog(`Table created: ${tableName} (${dataRowCount} data rows, header: ${hasHeader})`, 'success');
+            }
+        }
+        
+        // HTMLエスケープ
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // LIFF初期化
+        async function initializeLiff() {
+            try {
+                addDebugLog('LIFF initialization starting...', 'info');
+                updateStatus('LIFF初期化中...', '📱');
+                
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+                isLiffReady = true;
+                
+                addDebugLog('LIFF initialization completed', 'success');
+                addDebugLog(`LIFF version: ${liff.getVersion()}`);
+                addDebugLog(`Is in client: ${liff.isInClient()}`);
+                addDebugLog(`Is logged in: ${liff.isLoggedIn()}`);
+                
+                if (!liff.isLoggedIn()) {
+                    addDebugLog('User not logged in - redirecting to login', 'warning');
+                    updateStatus('LINEログインにリダイレクトします...', '🔐');
+                    
+                    setTimeout(() => {
+                        liff.login();
+                    }, 2000);
+                    return;
+                }
+                
+                addDebugLog('User is logged in', 'success');
+                
+                // ユーザー情報処理
+                await processUserInfo();
+                
+            } catch (error) {
+                addDebugLog(`LIFF initialization failed: ${error.message}`, 'error');
+                updateStatus('LIFF機能は利用できませんが、データは表示されます', '⚠️');
+            }
+        }
+        
+        // ユーザー情報処理
+        async function processUserInfo() {
+            try {
+                addDebugLog('Processing user info...', 'info');
+                updateStatus('ユーザー情報を処理中...', '👤');
+                
+                const idToken = liff.getIDToken();
+                if (!idToken) {
+                    throw new Error('IDトークンが取得できませんでした');
+                }
+                
+                addDebugLog('ID token acquired', 'success');
+                
+                // ユーザー情報をGASに送信
+                await saveUserToServer(idToken);
+                
+                const profile = await liff.getProfile();
+                currentUser = profile;
+                
+                addDebugLog(`User: ${profile.displayName}`, 'success');
+                updateStatus(`ようこそ、${profile.displayName} さん`, '👋');
+                
+            } catch (error) {
+                addDebugLog(`User processing failed: ${error.message}`, 'warning');
+                updateStatus('ユーザー情報の処理に失敗しましたが、アプリは利用できます', '⚠️');
+            }
+        }
+        
+        // ユーザー情報をサーバーに保存（JSONP対応版）
+        async function saveUserToServer(idToken) {
+            try {
+                addDebugLog('Saving user info to server (JSONP)...', 'info');
+                
+                // JSONPを使用してPOSTデータを送信
+                const requestData = {
+                    action: 'saveUser',
+                    idToken: idToken
+                };
+                
+                // POSTデータをクエリパラメータとして送信（JSONP用の回避策）
+                const params = {
+                    action: 'saveUser',
+                    idToken: idToken
+                };
+                
+                const result = await jsonpRequest(CONFIG.GAS_URL, params);
+                
+                if (result.status === 'Success') {
+                    addDebugLog(`User saved: ${result.saveMessage}`, 'success');
+                    addDebugLog(`User: ${result.displayName} (${result.userId})`, 'info');
+                } else if (result.error) {
+                    addDebugLog(`User save failed: ${result.error}`, 'warning');
+                } else {
+                    addDebugLog(`User save result: ${JSON.stringify(result)}`, 'info');
+                }
+                
+            } catch (error) {
+                addDebugLog(`Failed to save user: ${error.message}`, 'error');
+                // ユーザー保存に失敗しても、アプリの表示は継続
+            }
+        }
+        
+        // 再試行
+        async function retryLoad() {
+            addDebugLog('Retry requested by user', 'info');
+            showScreen('loading');
+            updateStatus('再試行中...', '🔄');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
+                await initialize();
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        // メイン初期化
+        async function initialize() {
+            try {
+                addDebugLog('=== App initialization started ===', 'info');
+                addDebugLog(`Version: JSONP Fixed v1.1`);
+                addDebugLog(`Timestamp: ${new Date().toISOString()}`);
+                addDebugLog(`User Agent: ${navigator.userAgent}`);
+                addDebugLog(`Screen: ${window.innerWidth}x${window.innerHeight}`);
+                
+                // ページデータ読み込み
+                await loadPageData();
+                
+                // メイン画面表示
+                showScreen('main');
+                
+                // LIFF初期化（並行実行）
+                if (typeof liff !== 'undefined') {
+                    initializeLiff().catch(error => {
+                        addDebugLog(`LIFF failed but continuing: ${error.message}`, 'warning');
+                    });
+                } else {
+                    addDebugLog('LIFF SDK not available', 'warning');
+                    updateStatus('データ表示完了（LIFF機能なし）', '📱');
+                }
+                
+                addDebugLog('=== App initialization completed ===', 'success');
+                
+            } catch (error) {
+                addDebugLog(`Initialization failed: ${error.message}`, 'error');
+                showError('アプリの初期化に失敗しました', error.message);
+            }
+        }
+        
+        // アプリ開始
+        document.addEventListener('DOMContentLoaded', () => {
+            addDebugLog('DOM Content Loaded', 'info');
+            
+            // LINEブラウザの読み込み完了を待つ
+            setTimeout(() => {
+                initialize();
+            }, 500);
+        });
+        
+        // エラーハンドリング
+        window.addEventListener('error', (event) => {
+            addDebugLog(`Global error: ${event.error?.message || event.message}`, 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            addDebugLog(`Unhandled promise rejection: ${event.reason}`, 'error');
+        });
+        
+        // デバッグ用グローバル変数
+        if (CONFIG.DEBUG_MODE) {
+            window.DEBUG_APP = {
+                config: CONFIG,
+                elements: elements,
+                jsonpRequest: jsonpRequest,
+                addDebugLog: addDebugLog,
+                retryLoad: retryLoad,
+                currentUser: () => currentUser,
+                createTable: createTable
+            };
+        }
+        
+        console.log('📱 年間スケジュールアプリ (修正版) 読み込み完了');
+    </script>
+</body>
+</html>
