@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>年間スケジュール</title>
+
+    <!-- LIFF SDK -->
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+
+    <style>
+      /* シンプルなスタイル - 高齢者向け */
+      body {
+        font-family: sans-serif;
+        font-size: 18px;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #2c5aa0;
+        text-align: center;
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      h2 {
+        color: #2c5aa0;
+        font-size: 22px;
+        border-bottom: 2px solid #2c5aa0;
+        padding-bottom: 5px;
+        margin-top: 30px;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #666;
+        font-size: 16px;
+        margin-bottom: 30px;
+      }
+
+      /* テーブルスタイル */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 16px;
+      }
+
+      th,
+      td {
+        border: 2px solid #ddd;
+        padding: 12px 8px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #e8f4f8;
+        font-weight: bold;
+        text-align: center;
+      }
+
+      tbody tr:first-child td:first-child,
+      th:first-child {
+        background-color: #ffe8b3;
+        font-weight: bold;
+      }
+
+      /* ステータス表示 */
+      .status {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #2c5aa0;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      /* ローディング画面 */
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .loading-text {
+        font-size: 20px;
+        margin-top: 20px;
+        color: #2c5aa0;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #2c5aa0;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* エラー画面 */
+      .error {
+        text-align: center;
+        padding: 40px 20px;
+      }
+
+      .error h2 {
+        color: #d32f2f;
+        font-size: 24px;
+      }
+
+      .retry-btn {
+        background: #2c5aa0;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+
+      .retry-btn:hover {
+        background: #1976d2;
+      }
+
+      /* 空のメッセージ */
+      .empty {
+        text-align: center;
+        padding: 30px;
+        color: #666;
+        font-size: 16px;
+        background: #f9f9f9;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+
+      /* 非表示クラス */
+      .hidden {
+        display: none;
+      }
+
+      /* モバイル対応 */
+      @media (max-width: 600px) {
+        body {
+          padding: 10px;
+          font-size: 16px;
+        }
+
+        h1 {
+          font-size: 24px;
+        }
+
+        h2 {
+          font-size: 20px;
+        }
+
+        table {
+          font-size: 14px;
+        }
+
+        th,
+        td {
+          padding: 8px 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ローディング画面 -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">読み込み中...</div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="main" class="container hidden">
+      <h1 id="main-title">年間スケジュール</h1>
+      <div id="sub-title" class="subtitle">読み込み中...</div>
+
+      <!-- スケジュール表 -->
+      <div id="schedule-section">
+        <div id="schedule-content">
+          <div class="empty">年間計画を読み込んでいます...</div>
+        </div>
+      </div>
+
+      <!-- 連絡事項 -->
+      <h2>📢 連絡事項</h2>
+      <div id="board-section">
+        <div id="board-content">
+          <div class="empty">連絡事項を読み込んでいます...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- エラー画面 -->
+    <div id="error" class="container error hidden">
+      <h2>⚠️ エラーが発生しました</h2>
+      <p id="error-message">データの読み込みに失敗しました</p>
+      <button class="retry-btn" onclick="retry()">再試行</button>
+    </div>
+
+    <!-- ステータスバー -->
+    <div id="status" class="status">準備中...</div>
+
+    <script>
+      // 設定
+      const CONFIG = {
+        // GAS Web App URL（ここを実際のURLに変更）
+        API_URL: "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        LIFF_ID: "2007511020-EQ98my1W",
+        TIMEOUT: 10000, // 10秒
+      };
+
+      // グローバル変数
+      let isLiffReady = false;
+
+      // DOM要素
+      const elements = {
+        loading: document.getElementById("loading"),
+        main: document.getElementById("main"),
+        error: document.getElementById("error"),
+        status: document.getElementById("status"),
+        mainTitle: document.getElementById("main-title"),
+        subTitle: document.getElementById("sub-title"),
+        scheduleContent: document.getElementById("schedule-content"),
+        boardContent: document.getElementById("board-content"),
+        errorMessage: document.getElementById("error-message"),
+      };
+
+      // ステータス更新
+      function updateStatus(message) {
+        elements.status.textContent = message;
+        console.log("Status:", message);
+      }
+
+      // 画面切り替え
+      function showScreen(screen) {
+        elements.loading.classList.add("hidden");
+        elements.main.classList.add("hidden");
+        elements.error.classList.add("hidden");
+
+        elements[screen].classList.remove("hidden");
+      }
+
+      // エラー表示
+      function showError(message) {
+        elements.errorMessage.textContent = message;
+        showScreen("error");
+        updateStatus("エラーが発生しました");
+      }
+
+      // API呼び出し（タイムアウト付き）
+      async function apiCall(url, options = {}) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT);
+
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (error.name === "AbortError") {
+            throw new Error(
+              "タイムアウトしました。ネットワーク接続を確認してください。"
+            );
+          }
+          throw error;
+        }
+      }
+
+      // ページデータ取得
+      async function loadPageData() {
+        try {
+          updateStatus("データを取得中...");
+
+          const data = await apiCall(`${CONFIG.API_URL}?action=getPageData`);
+
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // タイトル設定
+          if (data.mainTitle) {
+            elements.mainTitle.textContent = data.mainTitle;
+          }
+          if (data.subTitle) {
+            elements.subTitle.textContent = data.subTitle;
+          }
+
+          // テーブル生成
+          createTable(data.scheduleData, elements.scheduleContent, "年間計画");
+          createTable(data.boardData, elements.boardContent, "連絡事項");
+
+          showScreen("main");
+          updateStatus("データの読み込み完了");
+
+          console.log("Page data loaded successfully");
+        } catch (error) {
+          console.error("Failed to load page data:", error);
+          throw new Error("データの取得に失敗しました: " + error.message);
+        }
+      }
+
+      // テーブル作成
+      function createTable(data, container, name) {
+        // データが空かチェック
+        if (
+          !data ||
+          data.length === 0 ||
+          (data.length === 1 && data[0].every((cell) => !cell))
+        ) {
+          const message =
+            name === "連絡事項"
+              ? "現在、お知らせはありません"
+              : "表示する年間計画はありません";
+          container.innerHTML = `<div class="empty">${message}</div>`;
+          return;
+        }
+
+        // テーブル作成
+        let tableHTML = "<table>";
+
+        // ヘッダー行
+        if (data.length > 0) {
+          tableHTML += "<thead><tr>";
+          data[0].forEach((cell) => {
+            tableHTML += `<th>${cell || ""}</th>`;
+          });
+          tableHTML += "</tr></thead>";
+        }
+
+        // データ行
+        tableHTML += "<tbody>";
+        let hasDataRows = false;
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (row.every((cell) => !cell)) continue; // 空行スキップ
+
+          hasDataRows = true;
+          tableHTML += "<tr>";
+          row.forEach((cell) => {
+            tableHTML += `<td>${cell || ""}</td>`;
+          });
+          tableHTML += "</tr>";
+        }
+        tableHTML += "</tbody></table>";
+
+        // データ行がない場合
+        if (!hasDataRows) {
+          const message =
+            name === "連絡事項"
+              ? "現在、お知らせはありません"
+              : "表示する年間計画はありません";
+          container.innerHTML = `<div class="empty">${message}</div>`;
+        } else {
+          container.innerHTML = tableHTML;
+        }
+      }
+
+      // LIFF初期化
+      async function initLiff() {
+        try {
+          updateStatus("LIFF初期化中...");
+
+          await liff.init({ liffId: CONFIG.LIFF_ID });
+          isLiffReady = true;
+
+          console.log("LIFF initialized successfully");
+
+          // ログイン処理
+          if (!liff.isLoggedIn()) {
+            updateStatus("LINEログインにリダイレクトします...");
+            setTimeout(() => liff.login(), 1500);
+            return;
+          }
+
+          // ユーザー情報保存
+          await saveUser();
+        } catch (error) {
+          console.error("LIFF initialization failed:", error);
+          updateStatus("LIFF機能は利用できませんが、データは表示されます");
+        }
+      }
+
+      // ユーザー情報保存
+      async function saveUser() {
+        try {
+          updateStatus("ユーザー情報を保存中...");
+
+          const idToken = liff.getIDToken();
+          if (!idToken) {
+            throw new Error("IDトークンが取得できませんでした");
+          }
+
+          const result = await apiCall(CONFIG.API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "saveUser",
+              idToken: idToken,
+            }),
+          });
+
+          if (result.status === "Success") {
+            updateStatus(`ようこそ、${result.displayName} さん`);
+          } else {
+            updateStatus(
+              "ユーザー情報の保存に失敗しましたが、アプリは利用できます"
+            );
+          }
+        } catch (error) {
+          console.error("User save failed:", error);
+          updateStatus(
+            "ユーザー情報の保存に失敗しましたが、アプリは利用できます"
+          );
+        }
+      }
+
+      // 再試行
+      async function retry() {
+        showScreen("loading");
+        updateStatus("再試行中...");
+
+        try {
+          await initialize();
+        } catch (error) {
+          showError(error.message);
+        }
+      }
+
+      // 初期化
+      async function initialize() {
+        try {
+          // ページデータ読み込み
+          await loadPageData();
+
+          // LIFF初期化（並行実行）
+          initLiff().catch((error) => {
+            console.warn("LIFF failed but continuing:", error);
+          });
+        } catch (error) {
+          console.error("Initialization failed:", error);
+          showError(error.message);
+        }
+      }
+
+      // DOMContentLoaded後に開始
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("App starting...");
+
+        // 少し遅延させてから初期化
+        setTimeout(initialize, 500);
+      });
+
+      // デバッグ用
+      window.CONFIG = CONFIG;
+      window.retry = retry;
+    </script>
+  </body>
+</html>
