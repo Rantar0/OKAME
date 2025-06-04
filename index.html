@@ -168,10 +168,8 @@
         async function testConnection() {
             addTestResult('🔗 接続テストを開始...', 'info');
             
-            if (!CONFIG.API_URL || CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
-                addTestResult('❌ エラー: API_URL が設定されていません', 'error');
-                return;
-            }
+            // API_URL の確認を削除（既に正しく設定されているため）
+            addTestResult(`📡 接続先: ${CONFIG.API_URL}`, 'info');
             
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=health`, {
@@ -186,6 +184,8 @@
                     addTestResult(`✅ 接続成功: ${JSON.stringify(data)}`, 'success');
                 } else {
                     addTestResult(`❌ レスポンスエラー: ${response.status}`, 'error');
+                    const errorText = await response.text();
+                    addTestResult(`詳細: ${errorText}`, 'error');
                 }
                 
             } catch (error) {
@@ -194,8 +194,9 @@
                 // 詳細なエラー診断
                 if (error.message.includes('CORS')) {
                     addTestResult('💡 CORS エラーです。GASのデプロイ設定を確認してください。', 'warning');
-                } else if (error.message.includes('network')) {
-                    addTestResult('💡 ネットワークエラーです。URLが正しいか確認してください。', 'warning');
+                } else if (error.message.includes('Failed to fetch')) {
+                    addTestResult('💡 ネットワークエラーまたはCORS問題の可能性があります。', 'warning');
+                    addTestResult('💡 GASが正しくデプロイされているか確認してください。', 'warning');
                 }
             }
         }
